@@ -26,6 +26,3 @@ main.pdf
 *-SAVE-ERROR
 __pycache__/
 *.pyc
-
-# ===== Area de troca com o Overleaf
-.overleaf/
