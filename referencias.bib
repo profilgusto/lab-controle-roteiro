@@ -1,0 +1,213 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% referencias.bib -- base bibliografica do guia
+%%
+%% Formatacao pela ABNT NBR 6023:2018, aplicada automaticamente pelo
+%% biblatex-abnt. Aqui basta preencher os campos; nada de caixa alta, ponto
+%% final ou negrito manual -- o estilo cuida disso.
+%%
+%% Convencao das chaves: primeiroautor+ano  (ex.: ogata2010)
+%%
+%% Cuidados:
+%%   - Autores separados por " and ", sempre "Nome Sobrenome" ou
+%%     "Sobrenome, Nome". Autor institucional entre chaves duplas:
+%%     author = {{Associacao Brasileira de Normas Tecnicas}}
+%%   - Maiusculas que devem ser preservadas vao entre chaves: {PID}, {TTL}
+%%   - edition = {5} vira "5. ed." sozinho
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ----------------------------------------------------------------- livros ----
+@book{ogata2010,
+  author    = {Katsuhiko Ogata},
+  title     = {Engenharia de controle moderno},
+  edition   = {5},
+  publisher = {Pearson Prentice Hall},
+  location  = {São Paulo},
+  year      = {2010},
+}
+
+@book{nise2017,
+  author    = {Norman S. Nise},
+  title     = {Engenharia de sistemas de controle},
+  edition   = {7},
+  publisher = {LTC},
+  location  = {Rio de Janeiro},
+  year      = {2017},
+}
+
+@book{dorf2018,
+  author    = {Richard C. Dorf and Robert H. Bishop},
+  title     = {Sistemas de controle modernos},
+  edition   = {13},
+  publisher = {LTC},
+  location  = {Rio de Janeiro},
+  year      = {2018},
+}
+
+@book{franklin2019,
+  author    = {Gene F. Franklin and J. David Powell and Abbas Emami-Naeini},
+  title     = {Feedback control of dynamic systems},
+  edition   = {8},
+  publisher = {Pearson},
+  location  = {Hoboken},
+  year      = {2019},
+}
+
+@book{tocci2018,
+  author    = {Ronald J. Tocci and Neal S. Widmer and Gregory L. Moss},
+  title     = {Sistemas digitais},
+  subtitle  = {princípios e aplicações},
+  edition   = {12},
+  publisher = {Pearson},
+  location  = {São Paulo},
+  year      = {2018},
+}
+
+@book{idoeta2012,
+  author    = {Ivan Valeije Idoeta and Francisco Gabriel Capuano},
+  title     = {Elementos de eletrônica digital},
+  edition   = {41},
+  publisher = {Érica},
+  location  = {São Paulo},
+  year      = {2012},
+}
+
+% ------------------------------------------------- capitulo de livro ---------
+@inbook{astrom2008pid,
+  author    = {Karl Johan Åström and Richard M. Murray},
+  title     = {{PID} control},
+  booktitle = {Feedback systems: an introduction for scientists and engineers},
+  publisher = {Princeton University Press},
+  location  = {Princeton},
+  year      = {2008},
+  chapter   = {10},
+  pages     = {293--314},
+}
+
+% ---------------------------------------------- artigo de periodico ----------
+@article{astrom2004,
+  author  = {Karl Johan Åström and Tore Hägglund},
+  title   = {Revisiting the {Ziegler}--{Nichols} step response method for {PID} control},
+  journal = {Journal of Process Control},
+  volume  = {14},
+  number  = {6},
+  pages   = {635--650},
+  year    = {2004},
+  doi     = {10.1016/j.jprocont.2004.01.002},
+}
+
+% ------------------------------------------- trabalho em evento --------------
+@inproceedings{exemplo-congresso,
+  author       = {Fulano de Tal and Beltrana de Tal},
+  title        = {Título do trabalho apresentado no evento},
+  booktitle    = {Anais do Congresso Brasileiro de Automática},
+  eventtitle   = {Congresso Brasileiro de Automática},
+  number       = {24},
+  location     = {Fortaleza},
+  publisher    = {SBA},
+  year         = {2022},
+  pages        = {1--6},
+}
+
+% ------------------------------------------------- tese / dissertacao --------
+@thesis{exemplo-dissertacao,
+  author      = {Sicrano de Tal},
+  title       = {Título da dissertação},
+  type        = {mathesis},
+  institution = {Universidade Federal de São João del-Rei},
+  location    = {São João del-Rei},
+  year        = {2021},
+  pagetotal   = {112},
+}
+
+% --------------------------------------------- norma tecnica / manual --------
+@manual{nbr6023,
+  author    = {{Associação Brasileira de Normas Técnicas}},
+  title     = {{NBR} 6023: informação e documentação: referências: elaboração},
+  location  = {Rio de Janeiro},
+  year      = {2018},
+  pagetotal = {68},
+}
+
+@manual{sn7400,
+  author       = {{Texas Instruments}},
+  title        = {{SN}5400, {SN}7400 quadruple 2-input positive-{NAND} gates},
+  note         = {Datasheet {SDLS025D}},
+  location     = {Dallas},
+  year         = {2004},
+  url          = {https://www.ti.com/lit/ds/symlink/sn7400.pdf},
+  urldate      = {2026-08-19},
+}
+
+% ------------------------------------------------- documento eletronico ------
+@online{mathworks-cst,
+  author  = {{The MathWorks}},
+  title   = {Control System Toolbox documentation},
+  year    = {2025},
+  url     = {https://www.mathworks.com/help/control/},
+  urldate = {2026-08-19},
+}
+
+% ------------------------------------ planta CE117, CLP e supervisorio -------
+@manual{tecquipment2008,
+  author    = {{TecQuipment Ltd}},
+  title     = {{CE117} process trainer: user guide},
+  location  = {Nottingham},
+  year      = {2008},
+}
+
+@manual{rockwell-compactlogix,
+  author  = {{Rockwell Automation}},
+  title   = {{C}ompact{L}ogix controllers: user manual},
+  note    = {Publicação {1769-UM021}},
+  location = {Milwaukee},
+  year    = {2023},
+  url     = {https://literature.rockwellautomation.com/idc/groups/literature/documents/um/1769-um021_-en-p.pdf},
+  urldate = {2026-08-19},
+}
+
+@online{odva-cip,
+  author  = {{ODVA}},
+  title   = {{E}ther{N}et/{IP} quick start for vendors handbook},
+  year    = {2024},
+  url     = {https://www.odva.org/technology-standards/key-technologies/ethernet-ip/},
+  urldate = {2026-08-19},
+}
+
+@online{nodered,
+  author  = {{OpenJS Foundation}},
+  title   = {{N}ode-{RED} documentation},
+  year    = {2026},
+  url     = {https://nodered.org/docs/},
+  urldate = {2026-08-19},
+}
+
+@online{nodered-cip,
+  author  = {{ST-One}},
+  title   = {node-red-contrib-cip-st-ethernet-ip},
+  year    = {2025},
+  url     = {https://flows.nodered.org/node/node-red-contrib-cip-st-ethernet-ip},
+  urldate = {2026-08-19},
+}
+
+@manual{isa101,
+  author   = {{International Society of Automation}},
+  title    = {{ANSI/ISA}-101.01: human machine interfaces for process automation systems},
+  location = {Research Triangle Park},
+  year     = {2015},
+}
+
+@online{pycomm3,
+  author  = {Ottoway, Ian},
+  title   = {pycomm3: a {P}ython {E}ther{N}et/{IP} library for communicating with {A}llen-{B}radley {PLC}s},
+  year    = {2025},
+  url     = {https://docs.pycomm3.dev/},
+  urldate = {2026-08-19},
+}
+
+@online{clp-abs-comms,
+  author  = {Rocha, Filipe Augusto Santos},
+  title   = {clp-abs-comms: comunicação com o {CLP} {A}llen-{B}radley da planta {TQ} {CE}117},
+  year    = {2026},
+  url     = {https://github.com/profilgusto/clp-abs-comms},
+  urldate = {2026-08-19},
+}

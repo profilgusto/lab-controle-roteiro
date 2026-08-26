@@ -1,0 +1,61 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Guia de Aulas Práticas -- documento principal
+%%
+%% Compilar com:  latexmk -pdf main.tex
+%% (duas passadas são necessárias por causa do total de páginas no rodapé)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass{guiapratico}
+
+%  ===== Metadados do documento
+%% Dados do guia -- edite apenas este arquivo para adaptar a outra disciplina.
+
+\universidade{UNIVERSIDADE FEDERAL DE SÃO JOÃO DEL-REI}
+\subtitulos{%
+	CAMPUS ALTO PARAOPEBA \\
+	PRÓ-REITORIA DE ENSINO DE GRADUAÇÃO -- PROEN\\
+	COORDENADORIA DO CURSO DE ENG. MECATRÔNICA -- CEMEC}
+
+\titulo{GUIA DE AULAS PRÁTICAS}
+
+\unidadecurricular{Laboratório de Controle de Sistemas}
+\cursos{Eng. Mecatrônica}
+\professor{Edgar Campos Furtado, Filipe Augusto Santos Rocha}
+
+\arquivo{}
+\datadoc{}
+\revisao{}
+
+\localano{Ouro Branco, 2026}
+
+%  ===== Bibliografia
+%% Base de referencias no padrao ABNT (NBR 6023:2018). Pode ser chamado mais de
+%% uma vez, se houver mais de um arquivo .bib.
+\bibliografia{referencias.bib}
+
+
+
+% ===== Documento
+\begin{document}
+
+\maketitle
+
+% --- sumário (chapter > section > subsection > subsubsection)
+\sumario
+
+% --- Introdução
+\input{secoes/intro}
+
+% --- aulas
+\input{aulas/aula-01/conteudo}
+
+%\input{aulas/aula-exemplo/conteudo}
+% --- referências (NBR 14724)
+\referencias
+
+% --- apêndices
+%\input{apendices/apendice-a/conteudo}
+
+%\input{apendices/apendice-b/conteudo}
+%\input{apendices/apendice-c/conteudo}
+
+\end{document}

@@ -1,0 +1,451 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Aula 1 -- Ambientação com a planta TQ CE117 e conexão via pycomm3
+%%
+%% Local: aulas/aula-01/conteudo.tex
+%% Imagens: aulas/aula-01/img/{planta.jpg,diagrama-processo.png}
+%% Códigos: aulas/aula-01/src/{conversoes.py,ler_planta.py,comanda_planta.py}
+%%
+%% Material de origem: página do Trabalho Final da planta TQ CE117 (Kuara/UFSJ),
+%% de onde vêm o diagrama de processo, as tabelas de instrumentação, os dados
+%% do CLP e os parâmetros de rede. Os scripts de referência estão em
+%% https://github.com/profilgusto/clp-abs-comms
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\aula[Ambientação com a planta TQ CE117]{Ambientação com a Planta TQ CE117 e Comunicação com o CLP em Python}
+
+\objetivos{%
+  \item identificar no diagrama de processo os dois circuitos hidráulicos da planta TQ CE117 e a função de
+    cada instrumento;
+  \item relacionar cada instrumento à \sw{tag} correspondente no CLP e à sua faixa de conversão A/D ou D/A;
+  \item estabelecer, em Python, a comunicação \sw{EtherNet/IP} com o CLP da planta usando a biblioteca
+    \sw{pycomm3};
+  \item converter as contas lidas do CLP em grandezas físicas e as porcentagens de acionamento em contas de
+    saída;
+  \item operar o circuito frio aberto por linha de comando e por interface gráfica, enchendo o tanque de
+    processo com segurança;
+  \item levantar experimentalmente a curva de calibração do transmissor de nível, relacionando a tensão lida
+    à altura de líquido medida com régua milimetrada;
+  \item reunir as rotinas de leitura, escrita e conversão em um módulo Python reaproveitável, base dos
+    algoritmos de controle das aulas seguintes.}
+
+\listamaterial{1 planta TQ CE117 (Laboratório de Controle e Automação, sala 103.4); 1 CLP Allen-Bradley com
+  CPU CompactLogix L24EPR, já programado e energizado; 1 computador com Python 3.8 ou superior e acesso ao
+  roteador \sw{Wi-Fi} do laboratório; 1 régua milimetrada (ou trena com escala em milímetros) para medir a altura de líquido no tanque de processo;
+  água limpa no reservatório da planta.}
+
+\campo{Duração:}{2 horas/aula (\qty{1}{\hour} e \qty{40}{\minute}).}
+
+\section{Introdução}
+
+Um sistema de controle normalmente se organiza em camadas.
+%
+Na base está o processo físico equipado com diversos \textbf{instrumentos}, classificados em dois grupos distintos:
+%
+\begin{itemize}
+  \item os \textbf{sensores} permitem converter grandezas físicas em sinais elétricos;
+  \item os \textbf{atuadores} são capazes de aplicar energia, agindo assim sobre o processo.
+\end{itemize}
+%
+Acima dos instrumentos está o controlador, responsável pela aquisição determinística dos sinais e pelo acionamentos dos atuadores.
+%
+Estando estes três elementos interligados via rede de comunicação, torna-se possível implementar um controle retro-alimentado no processo, ou seja, realizar ações na planta em função dos dados provenientes dos sensores a partir de uma lógica pré-programada.
+
+
+Neste contexto, o objetivo desta aula é introduzir a planta didática que utilizaremos nesta disciplina, descrevendo seu funcionamento e instrumentos, além do controlador utilizado e maneiras de comunicar e interagir de maneira programática com estes elementos. 
+%
+Ao final desta prática, será possível transformar as leituras dos sensores localizados na planta em variáveis de memória em um algoritmo python; e, vice-versa, será possível programar comandos para os atuadores neste algoritmo que serão convertidos em ações dos atuadores na planta.
+%
+Esta prática é a base de todo o resto que será construído em termos de modelagem e controle da planta didática, sendo então o domínio da prática atual essencial para o bom andamento do curso.
+
+
+\subsection{A planta TQ CE117}
+Iremos utilizar a planta didática TQ CE117 (\rfig{fig:planta}), que emula um processo industrial contínuo \cite{tecquipment2008}.
+%
+A planta possui um painel de processo que interagem diretamente com os instrumentos da planta e que disponibiliza sinais analógicos em seus contatores elétricos.
+%
+Um CLP Allen-Bradley está conectado a esta interface através de cartões de conversão A/D e D/A.
+
+
+O elemento central desta planta é o tanque de processo, um cilindro transparente com escala graduada, através do qual se bombeia água por dois circuitos hidráulicos distintos (apresentados no diagrama de processo da \rfig{fig:diagrama}):
+\begin{itemize}
+  \item \textbf{Circuito quente fechado:} \cd{PUMP1} recircula água entre o tanque aquecedor --- onde está o aquecedor elétrico --- e o trocador de calor imerso no tanque de processo. A vazão é medida por \cd{FT1} e a temperatura do tanque aquecedor, por \cd{TT1}. Nenhuma água desse circuito se mistura à do tanque de processo: a troca é apenas térmica.
+  \item \textbf{Circuito frio aberto:} \cd{PUMP2} recalca água do reservatório, passando pelo radiador (com ventoinha e trocador de calor) e pela válvula proporcional \cd{S}, até a entrada do tanque de processo. A vazão é medida por \cd{FT2}, e as temperaturas de entrada e saída do radiador, por \cd{TT3} e \cd{TT4}. A
+    água retorna ao reservatório pela válvula de dreno, na base do tanque.
+\end{itemize}
+
+O tanque de processo é instrumentado com o transmissor de pressão \cd{PT}, o transmissor de nível \cd{LT} e o transmissor de temperatura \cd{TT5}. Uma válvula de ventilação, no topo, e uma válvula \sw{by-pass}, no retorno do circuito frio, são operadas manualmente.
+
+\begin{figure}[H]
+  \centering
+  \includefigure[0.62\textwidth]{planta.jpg}
+  \caption{Planta TQ CE117 do Laboratório de Controle e Automação.}
+  \label{fig:planta}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includefigure[0.85\textwidth]{diagrama-processo.png}
+  \caption{Diagrama de processo da planta TQ CE117.}
+  \label{fig:diagrama}
+\end{figure}
+
+Neste curso porém nos concentraremos somente no tanque de processo e no circuito frio aberto, buscando implementar leis de controle que regulam a altura do nível da água neste tangue.
+
+
+\subsection{Instrumentação}
+Todos os sensores e atuadores da planta utilizam sinal em tensão análogica de \qtyrange{0}{10}{\volt}, sendo seus contatos localizados no painel de processo localizado ao lado da planta didática.
+%
+As Tabelas~\ref{tab:entradas} e \ref{tab:saidas} apresentam as conversões \textbf{nominais} de cada instrumento do ponto de vista do CLP.
+
+\begin{table}[H]
+  \centering
+  \caption{Entradas: sensores da planta e conversão para unidade de engenharia.}
+  \label{tab:entradas}
+  \begin{tabelaguia}{colspec={llcX[l]},width=\textwidth}
+    Instrumento & \sw{Tag} & Sinal & Conversão \\
+    Sensores de vazão & FT1, FT2 & \qtyrange{0}{10}{\volt} & \qty{1}{\litre\per\minute} por volt \\
+    Sensores de temperatura & TT1 a TT5 & \qtyrange{0}{10}{\volt} & \qty{10}{\celsius} por volt \\
+    Sensor de nível & LT & \qtyrange{0}{10}{\volt} & \qty{0}{\volt}: tanque vazio; \qty{10}{\volt}: tanque cheio \\
+    Sensor de pressão & PT & \qtyrange{0}{10}{\volt} & \qty{100}{\milli\bar} por volt \\
+  \end{tabelaguia}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Saídas: atuadores da planta e conversão do comando.}
+  \label{tab:saidas}
+  \begin{tabelaguia}{colspec={llcX[l]},width=\textwidth}
+    Instrumento & \sw{Tag} & Sinal & Conversão \\
+    Aquecedor elétrico & --- & \qtyrange{0}{10}{\volt} & \qty{75}{\watt} por volt \\
+    Válvula proporcional & S & \qtyrange{0}{10}{\volt} & \qty{0}{\volt}: fechada; \qty{10}{\volt}: totalmente aberta \\
+    Bombas de água & PUMP1, PUMP2 & \qtyrange{0}{10}{\volt} & \qty{0}{\volt}: sem fluxo; \qty{10}{\volt}: fluxo máximo \\
+  \end{tabelaguia}
+\end{table}
+
+\subsection{O CLP e a conversão analógica-digital}
+Os instrumentos estão ligados aos cartões analógicos de um CLP Allen-Bradley com CPU CompactLogix L24EPR \cite{rockwell-compactlogix}.
+%
+Esses cartões trabalham na faixa de \qtyrange{-10,5}{+10,5}{\volt}, e a conversão A/D e D/A é representada na memória do CLP por um inteiro (\cd{INT}) de \qty{16}{\bits}, sendo um de sinal (i.e., positivo/negativo) e quinze de valor.
+%
+Esse inteiro é comumente chamado de \textbf{conta}: \qty{-10,5}{\volt} corresponde a \num{-32768} contas e \qty{+10,5}{\volt}, a \num{+32767} contas.
+%
+A tensão do instrumento pode ser calculada a partir da conta $N$ lida pelo cartão do CLP através da equação
+
+\begin{equation}
+  V = \frac{10{,}5}{32768}\,N \qquad [\unit{\volt}],
+  \label{eq:adc}
+\end{equation}
+
+\noindent e a conta a ser escrita para produzir uma tensão $V$ de comando é
+
+\begin{equation}
+  N = \operatorname{round}\!\left(\frac{32768}{10{,}5}\,V \right),
+  \label{eq:dac}
+\end{equation}
+
+onde $\operatorname{round(\cdot)}$ representa uma função programática que arredonda um número float para o inteiro mais próximo.
+
+\obs{Os instrumentos trabalham de \qtyrange{0}{+10}{\volt}, enquanto os cartões cobrem
+\qtyrange{-10,5}{+10,5}{\volt}; logo, o fundo de escala do cartão não é o fundo de escala do instrumento.
+%
+Por exemplo, um sensor saturado não indica \num{32767} em sua leitura, mas sim $~$\num{31207}.
+%
+Usar o número errado nessa conta é o erro mais comum na primeira conexão com a planta.}
+
+\obs{o maior valor que cabe num \texttt{INT} é \num{32767}. Escrever \num{32768} numa \sw{tag} de saída faz o
+valor transbordar e chegar ao CLP como \num{-32768}, ou seja, comando de \qty{-10,5}{\volt} em vez de fundo de
+escala. Toda escrita deve ser saturada em \num{32767} antes de sair do programa em Python.}
+
+O programa já carregado na memória no CLP expõe à rede o subconjunto de \textit{tags} da Tabela~\ref{tab:tags}, sendo somente estas acessíveis pelo seu programa.
+
+\begin{table}[H]
+  \centering
+  \caption{\sw{Tags} do CLP acessíveis pela rede.}
+  \label{tab:tags}
+  \begin{tabelaguia}{colspec={lccX[l]},width=\textwidth}
+    \sw{Tag} & Tipo & Faixa & Função \\
+    Program:MainProgram.PUMP2\_DAC  & INT & \numrange{0}{32767} & comando da bomba do circuito frio \\
+    Program:MainProgram.VALVE\_DAC  & INT & \numrange{0}{32767} & comando da válvula proporcional S \\
+    Program:MainProgram.FT2\_ADC    & INT & \numrange{-32768}{32767} & vazão no circuito frio aberto \\
+    Program:MainProgram.PT\_ADC     & INT & \numrange{-32768}{32767} & pressão no tanque de processo \\
+    Program:MainProgram.TT5\_ADC    & INT & \numrange{-32768}{32767} & temperatura no tanque de processo \\
+    Program:MainProgram.LT\_ADC     & INT & \numrange{-32768}{32767} & nível no tanque de processo \\
+  \end{tabelaguia}
+\end{table}
+
+Neste curso, iremos focar apenas nos instrumentos ligados ao monitoramento e controle do nível de vazão de água no tanque, mais especificamente (\textit{tags} abreviadas): \cd{PUMP2_DAC}, \cd{VALVE_DAC}, \cd{FT2_ADC} e \cd{LT_ADC}.
+
+
+\subsection{Interagindo com a planta usando Python}
+A comunicação com o CLP será feita diretamente em Python, pela biblioteca \sw{pycomm3}, que implementa o protocolo \sw{EtherNet/IP} sobre o protocolo CIP e conversa com controladores Logix sem exigir \sw{software} proprietário \cite{pycomm3,odva-cip}. 
+
+Toda a interação do código Python com o CLP pode ser resumida a três chamadas básicas:
+%
+\begin{itemize}
+  \item \cd{LogixDriver(ip)} --- abre a sessão CIP com o controlador; usado como gerenciador de contexto
+    (\cd{with}), fecha a sessão sozinho ao final do bloco;
+  \item \cd|plc.read('tag1', 'tag2', ...)| --- lê uma ou mais \sw{tags} de uma vez e devolve uma lista de
+    resultados, cada um com os campos \cd{tag}, \cd{value}, \cd{type} e \cd{error};
+  \item \cd|plc.write(('tag', valor), ...)| --- escreve nas \sw{tags} indicadas e devolve resultados no mesmo
+    formato, para que a confirmação do CLP seja verificada.
+\end{itemize}
+
+O Código~\ref{cod:leitura-minima} ilustra um programa mínimo que utiliza esta interface, abrindo a sessão, lendo uma \textit{tag} em seu valor \cd{INT} e printando o resultado.
+
+\begin{codigopython}[caption={Programa mínimo de leitura de uma \texttt{tag} com o \texttt{pycomm3}.},
+                     label={cod:leitura-minima}]
+from pycomm3 import LogixDriver
+
+with LogixDriver('200.200.200.25') as plc:
+    r = plc.read('Program:MainProgram.LT_ADC')
+    print(r.tag, '=', r.value, 'contas')
+\end{codigopython}
+
+
+Um conjunto de exemplos prontos para esta planta está disponível no repositório Github \cd{clp-abs-comms}\footnote{\url{https://github.com/profilgusto/clp-abs-comms}}, organizado em três níveis:
+
+\begin{itemize}
+  \item \cd{1_interacao-basica/} --- \cd{ler_tags.py}, que lê todas as \sw{tags} da planta, e
+    \cd{atua_e_le.py}, que escreve nos DACs, aguarda \qty{2}{\second} e lê o resultado de volta;
+  \item \cd{2_gui/} --- \cd{gui_planta.py}, interface gráfica em \sw{tkinter} com botões liga/desliga para
+    \cd{PUMP2} e \cd{VALVE} e gráfico do nível em tempo real; a opção \cd{--sim} simula o tanque, para testar
+    o programa longe do laboratório;
+  \item \cd{3_interacao-matlab/} --- \cd{daemon_clp.py}, que mantém a sessão CIP aberta e a expõe numa porta
+    TCP em JSON, permitindo que o \sw{MATLAB} leia e escreva as mesmas \sw{tags} sem nenhuma \sw{toolbox}.
+\end{itemize}
+
+Os códigos desta aula, listados ao final da prática, seguem a mesma organização: \cd{conversoes.py} concentra
+as conversões das \req{eq:adc} e \req{eq:dac}, e é importado por \cd{ler_planta.py} (aquisição) e
+\cd{comanda_planta.py} (acionamento).
+
+Os dados de rede do laboratório são: SSID \cd{Lab_Automa}, senha \cd{devibus485} e CLP no endereço
+\cd{200.200.200.25}.
+
+\obs{Segurança da planta: a válvula proporcional \texttt{S} deve estar totalmente aberta \emph{antes} de
+qualquer acionamento de \texttt{PUMP2}. Acionar a bomba contra a válvula fechada pressuriza a linha e pode
+danificar o equipamento. Esse intertravamento é responsabilidade do programa em Python que você vai escrever
+--- o CLP não o implementa.}
+
+\section{Prática}
+
+\begin{roteiro}
+  \item Percorra a planta e localize fisicamente, comparando com a \rfig{fig:diagrama}:
+    \begin{roteiro}
+      \item o tanque de processo, o reservatório e o tanque aquecedor;
+      \item \cd{PUMP1}, \cd{PUMP2}, o radiador com a ventoinha e o trocador de calor;
+      \item a válvula proporcional \cd{S}, a válvula \sw{by-pass}, a válvula de ventilação e a válvula de
+        dreno inferior;
+      \item os transmissores \cd{LT}, \cd{PT} e \cd{TT5}, junto ao tanque de processo, e \cd{FT2}, na linha do
+        circuito frio.
+    \end{roteiro}
+  \item Verifique que a água está acima do nível mínimo no reservatório inferior.
+  \item Abra a válvula de dreno inferior do tanque de processo e aguarde o tanque esvaziar completamente para
+    o reservatório. Mantenha a válvula de ventilação aberta.
+  \item Conecte o computador à rede \cd{Lab_Automa} e confirme o alcance do CLP com um \cd{ping} para
+    \cd{200.200.200.25}. Registre o tempo de resposta médio.
+    \obs{Sem resposta ao \texttt{ping} não há o que depurar no programa: o problema é de rede, não de código.}
+  \item Prepare o ambiente Python, clonando o repositório de exemplos e instalando a biblioteca em um ambiente
+    virtual:
+    \begin{roteiro}
+      \item \cd|git clone https://github.com/profilgusto/clp-abs-comms|;
+      \item \cd|python3 -m venv .venv| e \cd|source .venv/bin/activate|;
+      \item \cd|pip install -r 1_interacao-basica/requirements.txt|.
+    \end{roteiro}
+  \item Execute \cd|python3 1_interacao-basica/ler_tags.py| e confirme que o nome do controlador é
+    impresso e que as seis \sw{tags} da Tabela~\ref{tab:tags} respondem sem erro. Registre na
+    Tabela~\ref{tab:leituras} o valor em contas de cada sensor, com o tanque ainda vazio.
+    \obs{o \texttt{pycomm3} costuma imprimir alguns avisos de depreciação antes da saída útil. Eles são
+    inofensivos; para suprimi-los, execute o script com a opção \texttt{-W ignore} do interpretador.}
+  \item Abra o Código~\ref{cod:conversoes} e confira, linha a linha, como as \req{eq:adc} e \req{eq:dac} foram
+    implementadas e onde entra o ganho de cada instrumento da Tabela~\ref{tab:entradas}.
+  \item Execute \cd|python3 ler_planta.py| (Código~\ref{cod:leitura}) e complete a
+    Tabela~\ref{tab:leituras} com a tensão e o valor em unidade de engenharia exibidos. Calcule à mão, pela
+    \req{eq:adc}, a tensão correspondente a uma das contas registradas e compare-a com a exibida pelo
+    programa.
+  \item Abra a válvula proporcional \cd{S} por inteiro com
+    \cd|python3 comanda_planta.py 100 0| (Código~\ref{cod:comando}) e confirme, pelo ruído do
+    atuador e pela inspeção visual, que ela abriu totalmente.
+  \item Verifique o intertravamento antes de usá-lo de verdade: execute
+    \cd|python3 comanda_planta.py 0 25| e confirme que o programa recusa o comando e não escreve
+    nada no CLP.
+  \item Com a válvula \cd{S} aberta em \qty{100}{\percent}, feche a válvula de dreno inferior e acione a bomba
+    em \qty{25}{\percent} com \cd|python3 comanda_planta.py 100 25|.
+  \item Aguarde a estabilização da vazão e, com \cd|python3 ler_planta.py 10 0.5|, registre na
+    Tabela~\ref{tab:enchimento} o comando aplicado, a vazão \cd{FT2} indicada e a leitura de \cd{LT}. Anote
+    também a altura de líquido medida com a régua milimetrada.
+  \item Repita os dois passos anteriores para comandos de \qty{50}{\percent} e \qty{75}{\percent} em
+    \cd{PUMP2}, sem deixar o nível ultrapassar \qty{80}{\percent} da escala do tanque.
+    \obs{Acompanhe o tanque visualmente durante todo o enchimento. O transmissor de nível não aciona
+    intertravamento algum: o único limite é o operador.}
+  \item Prepare a calibração do transmissor de nível: com a válvula de dreno ainda fechada, encha o tanque
+    até aproximadamente \qty{80}{\percent} da sua altura e então pare a bomba com
+    \cd|python3 comanda_planta.py 100 0|. Aguarde a superfície do líquido ficar parada.
+    \obs{a leitura de \texttt{LT} só é confiável com o líquido em repouso: com a bomba ligada, a agitação na
+    entrada do tanque e a coluna em movimento deslocam a indicação. Meça sempre com vazão nula.}
+  \item Registre o primeiro ponto da Tabela~\ref{tab:calibracao-lt}: encoste a régua na parede do tanque, com
+    o zero no fundo interno, e leia a altura $h$ da superfície do líquido, em milímetros; em seguida execute
+    \cd|python3 ler_planta.py| e anote as contas e a tensão de \cd{LT}.
+    \obs{leia a régua com o olho na altura da superfície, para evitar erro de paralaxe, e sempre no mesmo
+    ponto do tanque. O menisco deve ser lido pela sua base, como em uma proveta.}
+  \item Levante os demais pontos da Tabela~\ref{tab:calibracao-lt} esvaziando o tanque aos poucos:
+    \begin{roteiro}
+      \item abra a válvula de dreno inferior o suficiente para um escoamento lento e feche-a novamente após
+        o nível cair cerca de \qtyrange{5}{10}{\milli\metre} --- o passo exato não importa, desde que os
+        pontos fiquem distribuídos por toda a faixa;
+      \item espere a superfície estabilizar, meça $h$ com a régua e registre a leitura de \cd{LT};
+      \item repita até o tanque esvaziar, completando as \num{20} linhas da tabela, e inclua como último
+        ponto o tanque vazio ($h = \qty{0}{\milli\metre}$).
+    \end{roteiro}
+    \obs{a válvula de dreno deve estar fechada no instante da medição. Medir com o tanque escoando introduz
+    erro nos dois sentidos: a altura muda enquanto se lê a régua e a leitura de \texttt{LT} acompanha com
+    atraso.}
+  \item Confira, ainda na bancada, se os pontos coletados são coerentes: a tensão deve crescer de forma
+    monotônica com a altura. Se algum ponto destoar visivelmente dos vizinhos, repita a medição antes de
+    desmontar o ensaio.
+  \item Feche a válvula \cd{S} com \cd|python3 comanda_planta.py 0 0| e confirme que ambas as saídas ficaram
+    zeradas.
+  \item Execute a interface gráfica do repositório com \cd|python3 2_gui/gui_planta.py| e repita um
+    enchimento curto usando os botões liga/desliga, acompanhando a curva de \cd{LT} na tela. Compare a leitura
+    mostrada no gráfico com a impressa pelo seu próprio programa.
+    \obs{a GUI zera as saídas ao ser fechada, desde que a opção \emph{zerar saídas ao sair} esteja marcada.
+    Confirme visualmente que a bomba parou antes de deixar a bancada.}
+  \item Guarde os três arquivos Python da aula (\cd{conversoes.py}, \cd{ler_planta.py} e
+    \cd{comanda_planta.py}) --- eles serão o ponto de partida das aulas seguintes, nas quais o laço de
+    controle será fechado sobre as mesmas funções de leitura e escrita.
+\end{roteiro}
+
+
+\subsection{Tabelas}
+
+\begin{table}[H]
+  \centering
+  \caption{Leituras de referência com o tanque vazio --- preencher durante a prática.}
+  \label{tab:leituras}
+  \begin{tabelaguia}{colspec={cccc},width=0.9\textwidth}
+    Instrumento & Contas lidas & Tensão [\unit{\volt}] & Unidade de engenharia \\
+    FT2 & \vazio & & \\
+    LT  & \vazio & & \\
+    PT  & \vazio & & \\
+    TT5 & \vazio & & \\
+  \end{tabelaguia}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Enchimento do tanque pelo circuito frio aberto --- preencher durante a prática.}
+  \label{tab:enchimento}
+  \begin{tabelaguia}{colspec={ccccc},width=\textwidth}
+    Comando PUMP2 [\unit{\percent}] & Contas escritas & FT2 [\unit{\litre\per\minute}] & LT [\unit{\percent}] & Altura $h$ [\unit{\milli\metre}] \\
+    \num{25} & \vazio & & & \\
+    \num{50} & \vazio & & & \\
+    \num{75} & \vazio & & & \\
+  \end{tabelaguia}
+\end{table}
+
+\begin{table}[H]
+  \centering
+  \caption{Calibração do transmissor de nível \texttt{LT} --- preencher durante a prática, com o tanque
+    esvaziando em passos e a vazão nula em cada medição.}
+  \label{tab:calibracao-lt}
+  \begin{tabelaguia}{colspec={cccc|cccc},width=\textwidth}
+    Ponto & $h$ [\unit{\milli\metre}] & Contas & $V_{LT}$ [\unit{\volt}] & Ponto & $h$ [\unit{\milli\metre}] & Contas & $V_{LT}$ [\unit{\volt}] \\
+    1  & \vazio & & & 11 & & & \\
+    2  & \vazio & & & 12 & & & \\
+    3  & \vazio & & & 13 & & & \\
+    4  & \vazio & & & 14 & & & \\
+    5  & \vazio & & & 15 & & & \\
+    6  & \vazio & & & 16 & & & \\
+    7  & \vazio & & & 17 & & & \\
+    8  & \vazio & & & 18 & & & \\
+    9  & \vazio & & & 19 & & & \\
+    10 & \vazio & & & 20 & & & \\
+  \end{tabelaguia}
+\end{table}
+
+\section{Códigos de Exemplo}
+Esta seção trás três códigos com exemplos da operação do CLP a partir de códigos Python.
+
+\codigoarquivo[language=Python,
+  caption={Conversões entre contas do CLP e grandezas físicas (arquivo
+  \texttt{aulas/aula-01/src/conversoes.py}).},
+  label={cod:conversoes}]{aulas/aula-01/src/conversoes.py}
+
+\codigoarquivo[language=Python,
+  caption={Leitura periódica das \texttt{tags} em unidade de engenharia (arquivo
+  \texttt{aulas/aula-01/src/ler\_planta.py}).},
+  label={cod:leitura}]{aulas/aula-01/src/ler_planta.py}
+
+\codigoarquivo[language=Python,
+  caption={Comando da válvula e da bomba em porcentagem, com intertravamento (arquivo
+  \texttt{aulas/aula-01/src/comanda\_planta.py}).},
+  label={cod:comando}]{aulas/aula-01/src/comanda_planta.py}
+
+
+\section{Pesquisa}
+
+\begin{roteiro}
+  \item Calcule a resolução do conversor A/D --- \qty{16}{\bits} na faixa de \qtyrange{-10,5}{+10,5}{\volt}
+    --- e converta-a para a unidade de engenharia de cada transmissor da Tabela~\ref{tab:entradas}. Discuta se essa resolução é limitante para a medição de vazão do circuito frio.
+  \item Mostre o que aconteceria, no CLP, se o programa escrevesse \num{32768} numa \sw{tag} de saída, e aponte a linha de \texttt{conversoes.py} que impede esse erro.
+
+  \item A Tabela~\ref{tab:entradas} traz a conversão \textbf{nominal} de \cd{LT}, em porcentagem de enchimento. Explique por que ela \textbf{não substitui} a curva de calibração levantada nam Tabela~\ref{tab:calibracao-lt} e cite duas fontes de erro que a calibração revela e a conversão nominal esconde.
+  
+  \item O tanque de processo é cilíndrico. A partir do seu diâmetro interno e da reta de calibração obtida nam Tabela~\ref{tab:calibracao-lt}, escreva a relação entre a leitura de \cd{LT}, em volts, e o volume de líquido, em litros, e discuta que hipóteses esta conversão está assumindo.
+
+\end{roteiro}
+
+\begin{comment}
+
+  
+\section{Sugestão de Redação do Relatório}
+
+Cada aula corresponde a uma seção do artigo entregue ao final da disciplina. Para esta aula, a seção é
+predominantemente descritiva: o objetivo é apresentar a planta e demonstrar que a cadeia de comunicação está
+íntegra nos dois sentidos, não ainda extrair modelos ou sintonizar controladores.
+
+\subtituloguia{Introdução da seção}
+
+Apresente em poucas frases a planta TQ CE117, o CLP e a biblioteca \sw{pycomm3}, e o objetivo desta etapa:
+estabelecer e validar experimentalmente o caminho de dados entre o processo e o programa em Python, sobre o
+qual as demais etapas do trabalho serão construídas.
+
+\subtituloguia{Metodologia}
+
+Descreva, em texto corrido e na terceira pessoa (não copie o roteiro em imperativo), como a sessão
+\sw{EtherNet/IP} com o CLP foi aberta, quais \sw{tags} foram lidas e escritas, como as conversões A/D e D/A
+foram implementadas em \texttt{conversoes.py} e como o ensaio de enchimento foi conduzido. Inclua um trecho
+comentado do código de aquisição e explique o papel de cada função. Registre explicitamente o intertravamento
+adotado entre a válvula \cd{S} e \cd{PUMP2} e onde ele está implementado. Descreva ainda o procedimento de
+calibração do transmissor de nível: como a altura foi medida, por que cada ponto foi tomado com vazão nula e
+com a válvula de dreno fechada, e quantos pontos cobrem a faixa ensaiada.
+
+\subtituloguia{Resultados}
+
+\begin{itemize}
+  \item Reproduza a Tabela~\ref{tab:leituras} acrescentando uma coluna com a tensão calculada à mão pela
+    \req{eq:adc} e o desvio percentual em relação ao valor apresentado pelo programa. Esse desvio é o
+    indicador de que a conversão foi implementada corretamente.
+  \item A partir da Tabela~\ref{tab:enchimento}, construa um gráfico com o comando de \cd{PUMP2}, em
+    porcentagem, no eixo horizontal e a vazão \cd{FT2}, em \unit{\litre\per\minute}, no eixo vertical. Indique se a relação
+    observada é monotônica e se há zona morta em comandos baixos.
+  \item Construa o gráfico de calibração de \cd{LT} a partir da Tabela~\ref{tab:calibracao-lt}, com a altura
+    $h$, em \unit{\milli\metre}, no eixo horizontal e a tensão lida, em \unit{\volt}, no eixo vertical.
+    Marque os \num{20} pontos medidos e ajuste sobre eles uma reta $V_{LT} = a\,h + b$ por mínimos quadrados.
+  \item Informe os coeficientes obtidos com suas unidades --- a sensibilidade $a$ em \unit{\volt\per\milli\metre}
+    e o \sw{offset} $b$ em \unit{\volt} ---, o coeficiente de determinação $R^2$ do ajuste e o maior desvio
+    entre um ponto medido e a reta. Apresente também a relação inversa $h = (V_{LT} - b)/a$, que é a forma
+    efetivamente usada pelo programa para converter a leitura em altura.
+\end{itemize}
+
+\subtituloguia{Discussão}
+
+Comente a integridade da cadeia de medição: se os valores convertidos são compatíveis com o estado físico
+observado da planta (tanque vazio, bomba parada) e a que fatores atribuir eventuais discrepâncias --- erro no
+fator de escala, ruído do transmissor, resolução do conversor, atraso entre requisições CIP. Discuta a qualidade da calibração de \cd{LT}: se os resíduos em torno da reta ajustada se distribuem ao
+acaso ou seguem um padrão --- uma curvatura sistemática apontaria não linearidade do transmissor, enquanto
+uma dispersão uniforme aponta a incerteza da leitura da régua ---, e estime a resolução em altura que a
+sensibilidade obtida permite, em \unit{\milli\metre} por conta. Comente também o
+comportamento do circuito frio sob comandos crescentes de \cd{PUMP2}, apontando indícios de zona morta,
+saturação ou atraso de transporte. Encerre discutindo o período de amostragem que o acesso via \sw{pycomm3}
+permite sustentar e o que isso significa para o laço de controle a ser fechado nas aulas seguintes.
+\end{comment}
+

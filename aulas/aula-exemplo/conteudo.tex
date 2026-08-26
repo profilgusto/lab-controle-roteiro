@@ -1,0 +1,341 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Aula exemplo -- vitrine dos recursos da classe guiapratico
+%%
+%% Este arquivo nao pretende ser uma aula de verdade: ele exercita, um a um, os
+%% comandos e ambientes da classe, para servir de consulta rapida na hora de
+%% escrever as aulas reais. Copie daqui os trechos que interessarem.
+%%
+%% ARMADILHA UNICA: \cd e verbatim (\lstinline). Ele NAO pode aparecer dentro
+%% do argumento de outra macro -- \objetivos, \campo, \obs, \caption, \section,
+%% \item de \objetivos etc. Nesses lugares use \texttt{\textbackslash comando}.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% \aula[titulo curto para o sumario]{Titulo completo}
+% Abre pagina nova, imprime a faixa cinza "Aula N" com o brasao e zera os
+% contadores de secao, figura, tabela, equacao e codigo.
+\aula[Recursos do template]{Recursos do Template --- Aula de Exemplo}
+
+% ---------------------------------------------------------------- cabecalho --
+% Campos rotulados do topo da aula. Um campo vazio simplesmente nao e impresso.
+
+\objetivos{%
+  \item conhecer os comandos de estrutura da classe
+        (\texttt{\textbackslash aula}, \texttt{\textbackslash section},
+        \texttt{\textbackslash secaoguia}, \texttt{\textbackslash subtituloguia});
+  \item exercitar os blocos próprios do guia --- roteiro, tabela de
+        preenchimento, figura, listagem de código e citação;
+  \item servir de referência rápida durante a escrita das demais aulas.}
+
+\listamaterial{1 computador com \sw{MATLAB}/\sw{Octave} ou \sw{Python};
+  1 osciloscópio digital; 1 gerador de funções; 1 protoboard; 1 circuito
+  integrado \ci{SN7400}; resistores e capacitores diversos; cabos banana--jacaré.}
+
+% \campo{Rotulo:}{conteudo} -- campo rotulado generico, para quando os campos
+% prontos (\objetivos, \listamaterial) nao bastarem.
+\campo{Duração:}{2 horas/aula (1h40min).}
+
+% ------------------------------------------------------------------ texto ----
+% \introducao imprime o rotulo "Introducao:" (e um \subtituloguia pronto).
+\section{Introdução}
+
+Este documento reúne, em um só lugar, tudo o que a classe \cd{guiapratico}
+oferece para a escrita de uma aula prática. O texto corrido é composto em
+DejaVu Sans, com parágrafos justificados; termos estrangeiros e nomes de
+programas passam por \cd|\sw{...}| --- como em \sw{software}, \sw{datasheet} e
+\sw{Simulink} --- e códigos de circuitos integrados por \cd|\ci{...}|, que
+impede a quebra de linha no meio da sigla: \ci{SN7400}, \ci{CD4017}.
+
+Trechos curtos de código no meio da frase saem com \cd|\cd{...}|: chame
+\cd{step(sys)} para obter a resposta ao degrau. Se o trecho contiver \verb|%| ou
+chaves desbalanceadas, troque as chaves por outro delimitador, como em
+\verb+\cd|a % b|+.
+
+A referência teórica da disciplina é \textcite{ogata2010}; para o projeto de
+controladores no domínio da frequência, veja também \cite{nise2017,dorf2018}.
+Uma citação com página fica assim: \cite[p.~42]{franklin2019}. Citação de
+citação usa \texttt{\textbackslash apud}: \apud{astrom2004}{ogata2010}.
+
+% ATENCAO: \cd nao funciona dentro do argumento de \obs -- use \texttt.
+\obs{o comando \texttt{\textbackslash obs} produz este parágrafo iniciado por
+\textbf{OBS --}, útil para avisos de segurança ou pegadinhas da montagem.}
+
+% -------------------------------------------------------------- estrutura ----
+% Duas familias de titulos convivem no mesmo texto:
+%   \section/\subsection/\subsubsection -> numerados (1.1, 1.1.1, 1.1.1.1)
+%   \secaoguia/\subtituloguia           -> sem numero, fora do sumario
+
+\section{Títulos numerados}\label{sec:titulos}
+
+Esta é uma \cd{\section}: numerada com o número da aula como prefixo
+(\ref{sec:titulos}) e referenciável por \cd|\label|/\cd|\ref|. Por padrão as
+seções não aparecem no sumário --- para incluí-las, aumente o \cd{tocdepth} no
+preâmbulo do \cd{main.tex}.
+
+\subsection{Subseção}
+
+Um nível abaixo. A numeração acompanha: a Seção~\ref{sec:titulos} gera esta
+subseção \thesubsection.
+
+\subsubsection{Sub-subseção}
+
+O nível mais profundo numerado pela classe.
+
+\secaoguia{Título de bloco sem número}
+
+O \cd{\secaoguia} imprime um título em caixa alta, sem numeração e fora do
+sumário --- é o mesmo estilo usado em \textbf{REFERÊNCIAS} e nos apêndices.
+
+\subtituloguia{Subtítulo em negrito}
+
+Já o \cd{\subtituloguia} produz um subtítulo indentado, também sem número.
+
+% ---------------------------------------------------------------- formulas ---
+\section{Equações}
+
+O \cd{amsmath} já vem carregado pela classe. O contador de equações é zerado a
+cada aula (as figuras, tabelas e listagens é que levam o número da aula como
+prefixo), e a equação aceita rótulo:
+
+\begin{equation}\label{eq:pid}
+  u(t) = K_p\,e(t) + K_i \int_{0}^{t} e(\tau)\,\mathrm{d}\tau
+       + K_d \frac{\mathrm{d}e(t)}{\mathrm{d}t}.
+\end{equation}
+
+Em Laplace, a \req{eq:pid} vira a função de transferência
+
+\begin{equation}\label{eq:pid-s}
+  C(s) = K_p + \frac{K_i}{s} + K_d s
+       = K_p\left(1 + \frac{1}{T_i s} + T_d s\right),
+\end{equation}
+
+com $T_i = K_p/K_i$ e $T_d = K_d/K_p$. Matemática no meio do texto também
+funciona: o sistema de primeira ordem $G(s) = K/(\tau s + 1)$ tem constante de
+tempo $\tau$ e ganho estático $K$.
+
+Para citar uma equação no texto use \cd|\req{rotulo}|, que escreve
+\enquote{Equação} seguida do número entre parênteses, como na \req{eq:pid-s}.
+
+% ----------------------------------------------------------------- unidades ---
+\section{Números e unidades}
+
+A classe carrega o \cd{siunitx}, que é a forma padrão de escrever grandezas
+neste guia --- nunca digite a unidade à mão. Ele já vem configurado para o
+português: vírgula decimal, milhar separado por espaço fino e faixas escritas
+com \enquote{a}.
+
+\begin{itemize}
+  \item \cd|\qty{500}{\milli\second}| $\rightarrow$ \qty{500}{\milli\second}
+        --- valor com unidade (o espaço correto entre eles é automático e
+        não quebra linha);
+  \item \cd|\qtyrange{-10,5}{+10,5}{\volt}| $\rightarrow$
+        \qtyrange{-10,5}{+10,5}{\volt} --- faixa com a unidade escrita uma
+        única vez;
+  \item \cd|\unit{\litre\per\minute}| $\rightarrow$ \unit{\litre\per\minute}
+        --- só a unidade, para cabeçalhos de tabela e rótulos de eixo;
+  \item \cd|\num{-32768}| $\rightarrow$ \num{-32768} --- só o número, com o
+        sinal e o agrupamento de milhar corretos;
+  \item \cd|\qty{28,3}{\percent}| $\rightarrow$ \qty{28,3}{\percent} ---
+        porcentagem (repare que a vírgula decimal é escrita como vírgula).
+\end{itemize}
+
+Todos funcionam dentro e fora do modo matemático. Unidades fora do SI usadas
+no guia são declaradas na classe com \cd|\DeclareSIUnit|: \cd|\bit|/\cd|\bits|, \cd|\rpm|
+e \cd|\voltpp| ($\qty{5}{\voltpp}$, por exemplo).
+
+% ----------------------------------------------------------------- figuras ---
+\section{Figuras}
+
+\cd|\figuraguia[largura]{arquivo}{legenda}| coloca a figura centrada, com
+legenda numerada, buscando o arquivo em \cd{img/} \emph{ao lado} deste
+\cd{.tex} --- não importa de onde o arquivo seja incluído.
+
+\figuraguia[0.8\textwidth]{exemplo.png}{Imagem de exemplo, incluída com
+  \texttt{\textbackslash figuraguia}.}
+
+Para uma imagem compartilhada entre várias aulas, guardada em \cd{figuras/} na
+raiz do projeto, use \cd|\figuraglobal{figuras/arquivo.pdf}{legenda}|. E para
+inserir a imagem sem \sw{float} nem legenda --- dentro de uma tabela, por
+exemplo --- existe \cd|\includefigure[largura]{arquivo}|.
+
+% Figura montada "na mao" em vez de \figuraguia, para que o \label venha logo
+% depois do \caption -- so assim ela pode ser referenciada por \ref (o
+% \figuraguia nao tem onde encaixar o rotulo).
+\begin{figure}[H]
+  \centering
+  \includefigure[0.5\textwidth]{exemplo.png}
+  \caption{Circuito usado na prática; aqui o \texttt{\textbackslash label} vem
+    logo após o \texttt{\textbackslash caption}, o que permite a referência
+    cruzada feita mais adiante, no roteiro.}
+  \label{fig:exemplo-ref}
+\end{figure}
+
+A chamada no texto é feita com \cd|\rfig{rotulo}|, que escreve
+\enquote{Figura} seguida do número --- por exemplo, \rfig{fig:exemplo-ref}.
+
+% ----------------------------------------------------------------- tabelas ---
+\section{Tabelas}
+
+O ambiente \cd{tabelaguia} desenha a tabela no estilo do guia: fios pretos e
+primeira linha em cinza, negrito. A especificação das colunas segue o
+\cd{tabularray} (\cd{c}, \cd{l}, \cd{r}, \cd{X}\ldots).
+
+\begin{table}[H]
+  \centering
+  \caption{Tabela verdade da porta NAND, preenchida pelo professor.}
+  \label{tab:verdade}
+  \begin{tabelaguia}{colspec={ccc},width=0.55\textwidth}
+    $A$ & $B$ & $S = \overline{A \cdot B}$ \\
+    0 & 0 & 1 \\
+    0 & 1 & 1 \\
+    1 & 0 & 1 \\
+    1 & 1 & 0 \\
+  \end{tabelaguia}
+\end{table}
+
+Nas tabelas de preenchimento à mão, \cd{\vazio} dá altura útil à célula vazia:
+
+\begin{table}[H]
+  \centering
+  \caption{Medidas do ensaio --- preencher durante a prática.}
+  \label{tab:medidas}
+  \begin{tabelaguia}{colspec={cccc},width=0.85\textwidth}
+    Ensaio & $V_{\text{ent}}$ [\unit{\volt}] & $V_{\text{sai}}$ [\unit{\volt}] & $t_s$ [\unit{\milli\second}] \\
+    1 & \vazio & & \\
+    2 & \vazio & & \\
+    3 & \vazio & & \\
+  \end{tabelaguia}
+\end{table}
+
+A Tabela~\ref{tab:medidas} também pode ser citada por \cd{\ref}, como a
+Tabela~\ref{tab:verdade}.
+
+% ---------------------------------------------------------------- roteiros ---
+% \pratica imprime o titulo "Pratica:" alinhado a esquerda.
+\pratica
+
+O ambiente \cd{roteiro} numera os passos no formato \textbf{1}~-- e aceita um
+nível de subitens (\textbf{1.1}~--).
+
+\begin{roteiro}
+  \item Monte na protoboard o circuito da \rfig{fig:exemplo-ref}, com o
+        \ci{SN7400} alimentado em \qty{5}{\volt}.
+
+  \item Ajuste o gerador de funções para onda quadrada de \qty{1}{\kilo\hertz},
+        amplitude \qty{5}{\voltpp} e nível DC de \qty{2,5}{\volt}:
+        \begin{roteiro}
+          \item conecte a saída do gerador à entrada $A$;
+          \item mantenha a entrada $B$ em nível lógico alto;
+          \item verifique a forma de onda no osciloscópio antes de prosseguir.
+        \end{roteiro}
+
+  \item Registre na Tabela~\ref{tab:medidas} os valores medidos.
+
+  \item Compare o resultado com a Tabela~\ref{tab:verdade} e justifique as
+        divergências, se houver.
+\end{roteiro}
+
+% ---------------------------------------------------------------- listagens --
+\section{Listagens de código}
+
+Blocos de código têm realce de sintaxe, numeração de linhas e legenda
+\cd{Codigo N.M:} --- numerada por aula, como as figuras. Acentuação dentro das
+listagens funciona normalmente.
+
+\begin{codigomatlab}[caption={Resposta ao degrau de uma planta de segunda ordem.},
+                     label={cod:degrau}]
+% Planta de segunda ordem subamortecida
+wn   = 2*pi*5;        % frequência natural [rad/s]
+zeta = 0.3;           % coeficiente de amortecimento
+G    = tf(wn^2, [1 2*zeta*wn wn^2]);
+
+% Malha fechada com controlador proporcional
+Kp = 4;
+T  = feedback(Kp*G, 1);
+
+step(T); grid on;
+title('Resposta ao degrau em malha fechada');
+\end{codigomatlab}
+
+O Código~\ref{cod:degrau} usa o ambiente \cd{codigomatlab}. Há ainda
+\cd{codigopython}, \cd{codigoc}, \cd{codigocpp}, \cd{codigoarduino},
+\cd{codigovhdl}, \cd{codigobash} e \cd{codigotexto} (sem realce). O ambiente
+genérico \cd{codigo} aceita \cd{language=} no argumento opcional, junto de
+qualquer outra chave do \cd{listings}.
+
+\begin{codigoarduino}[caption={Leitura do sensor e acionamento do atuador.},
+                      label={cod:arduino}]
+const int PINO_SENSOR  = A0;
+const int PINO_ATUADOR = 9;
+
+void setup() {
+  Serial.begin(115200);
+  pinMode(PINO_ATUADOR, OUTPUT);
+}
+
+void loop() {
+  int leitura = analogRead(PINO_SENSOR);   // leitura de 0 a 1023
+  analogWrite(PINO_ATUADOR, leitura / 4);  // saída PWM de 0 a 255
+  Serial.println(leitura);
+  delay(10);
+}
+\end{codigoarduino}
+
+Sem numeração de linhas e sem realce, para saída de terminal:
+
+\begin{codigotexto}[caption={Saída esperada no monitor serial.}, style=semnumeros]
+$ python degrau.py
+K = 2.00, tau = 3.00 s, theta = 1.50 s
+\end{codigotexto}
+
+\subtituloguia{Código em arquivo externo}
+
+Melhor que copiar e colar: o fonte fica em \cd{src/}, roda de verdade e o guia
+mostra sempre a versão atual. As chaves \cd{firstline}/\cd{lastline} recortam
+um trecho, e \cd{style=semnumeros} desliga a numeração de linhas.
+
+\codigoarquivo[language=Python, firstline=14, lastline=21,
+  caption={Identificação pelo método dos dois pontos (arquivo
+  \texttt{aulas/aula-exemplo/src/degrau.py}).},
+  label={cod:identifica}]{aulas/aula-exemplo/src/degrau.py}
+
+O Código~\ref{cod:identifica} implementa o método de Smith, discutido em
+\textcite{astrom2008pid}.
+
+% ------------------------------------------------------------------ listas ---
+\section{Listas de apoio}
+
+Além do \cd{roteiro}, valem as listas padrão do \LaTeX, já compactadas pela
+classe:
+
+\begin{itemize}
+  \item itens sem numeração, para enumerar materiais ou cuidados;
+  \item aceitam aninhamento:
+    \begin{itemize}
+      \item segundo nível;
+    \end{itemize}
+\end{itemize}
+
+\begin{enumerate}[label=\alph*),leftmargin=1.2cm]
+  \item o \cd{enumitem} está carregado, então rótulos personalizados funcionam;
+  \item útil para as alíneas exigidas pela ABNT no relatório.
+\end{enumerate}
+
+% ---------------------------------------------------------------- pesquisa ---
+% \pesquisa imprime o titulo "PESQUISA" centrado.
+\pesquisa
+
+Bloco para a parte teórica que o aluno responde em casa.
+
+\begin{roteiro}
+  \item Consulte o \sw{datasheet} do \ci{SN7400} \cite{sn7400} e informe a
+        corrente máxima de saída em nível baixo ($I_{OL}$).
+
+  \item Explique, com suas palavras, por que o método dos dois pontos usa
+        justamente \qty{28,3}{\percent} e \qty{63,2}{\percent} do valor final.
+
+  \item Pesquise na documentação do \sw{Control System Toolbox}
+        \cite{mathworks-cst} qual função retorna as margens de ganho e de fase.
+\end{roteiro}
+
+\obs{a fonte de toda pesquisa deve ser citada no relatório, conforme a
+  \cite{nbr6023} --- veja o Apêndice~B.}

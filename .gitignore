@@ -1,0 +1,31 @@
+# ===== Saidas de compilacao LaTeX
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.synctex.gz
+*.synctex(busy)
+main.pdf
+
+# biblatex/biber
+*.bbl
+*.bcf
+*.blg
+*.run.xml
+
+# tabularray
+*.tblr.aux
+
+# ===== Lixo de sistema / sincronizacao
+.DS_Store
+*(conflicted)*
+*-SAVE-ERROR
+__pycache__/
+*.pyc
+
+# ===== Area de troca com o Overleaf
+.overleaf/
