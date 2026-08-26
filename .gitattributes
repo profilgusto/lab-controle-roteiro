@@ -1,0 +1,5 @@
+# Nao vai para o zip enviado ao Overleaf (material de apoio so meu)
+_refs/ export-ignore
+scripts/ export-ignore
+Makefile export-ignore
+.gitattributes export-ignore
